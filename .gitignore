@@ -3,4 +3,10 @@ pom.xml
 /lib/
 /classes/
 /targets/
+/target/
+/out/
+/logs/
+/tools/recordings/
+.project
 .lein-deps-sum
+.lein-repl-history

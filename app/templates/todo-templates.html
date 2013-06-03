@@ -1,0 +1,81 @@
+<!--
+ The Pedestal application development tools provide a very simple
+ system for composing documents. This partial will be included
+ "within" the application.html file. The div with id "content" in that
+ file will be replaced with the div with id "content" in this file.
+
+ This feature is only part of the tool. It has nothing to do with the
+ ClojureScript application that you are building.
+-->
+<_within file="todo-app.html">
+  
+  <div id="content">
+    
+	<section class="todoapp" id="root" template="todo-mvc">
+		
+		<header class="header">
+			<h1>todos</h1>
+			<input id="new-todo" placeholder="What needs to be done?" autofocus>
+		</header>
+		
+		<div field="content:append-todos-section">
+			<section class="main" template="todos-section" field="id:id">
+			    
+				<input class="toggle-all" type="checkbox" field="checked:check-state,class:toggle-class">
+				<label for="toggle-all">Mark all as complete</label>
+				
+				<div field="content:append-todos">
+					<ul class="todo-list" template="todos" field="id:id,content:append-todo">				
+						<li class="todo" template="todo" field="id:id">
+						    <div field="class:completed">
+								<div class="view">
+									<input class="toggle" type="checkbox" field="checked:check-state,class:toggle-class">
+									<label>
+										<span field="content:text">Create a TodoMVC template</span>
+									</label>
+									<button class="destroy"></button>
+								</div>
+								<input class="edit" value="Create a TodoMVC template" field="value:text">
+							</div>
+						</li>					
+					</ul>
+				</div>
+				
+			</section>
+		</div>
+		<div field="content:append-footer">
+			<footer class="footer" template="footer" field="id:id">
+				
+				<div field="content:append-remaining">
+					<span class="todo-count" template="remaining" field="id:id">
+						<strong field="content:remaining">1</strong> item left
+					</span>
+				</div>
+				
+				<div field="content:append-filter">
+					<ul class="filters" template="filter" field="id:id">
+						<li>
+							<a class="selected" field="class:all" href="#/">All</a>
+						</li>
+						<li>
+							<a href="#/active" field="class:remaining">Active</a>
+						</li>
+						<li>
+							<a href="#/completed" field="class:completed">Completed</a>
+						</li>
+					</ul>
+				</div>
+				
+				<div field="content:append-completed">
+					<button class="clear-completed" template="completed" field="id:id">
+						Clear completed (<span field="content:completed">1</span>)
+					</button>
+				</div>
+				
+			</footer>
+		</div>
+	</section>
+
+  </div>
+
+</_within>
