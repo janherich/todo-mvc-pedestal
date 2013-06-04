@@ -20,6 +20,8 @@
 
 (def *enter-key* 13)
 
+(def *escape-key* 27)
+
 (def *event-type-navigate* goog.history.EventType.NAVIGATE)
 
 (def *h* (goog.History.))
@@ -43,26 +45,28 @@
 
 (defn todo-mvc-transform-enable [renderer [_ path transform-name messages] transmitter]
   (condp = transform-name
-  :add-todo
-  (let [add-todo-input (dom/by-id "new-todo")]
-    (dom-events/listen! add-todo-input 
-		                    :keypress 
-					              (fn [e]
-					                (when (= *enter-key* (:keyCode e))
-		                        (dom-events/prevent-default e)
-					                  (let [text (.-value add-todo-input)]
-		                          (set! (.-value add-todo-input) "")
-                              (send-messages! transmitter transform-name messages {:text text}))))))
-  :filter-todos (do 
-                  (goog-events/listen *h* *event-type-navigate* (partial decode-hash transform-name messages transmitter))
-                  (.setEnabled *h* true))))
+	  :add-todo
+		  (let [add-todo-input (dom/by-id "new-todo")]
+		    (dom-events/listen! add-todo-input 
+				                    :keypress 
+							              (fn [{keyCode :keyCode :as e}]
+							                (when (= *enter-key* keyCode)
+				                        (dom-events/prevent-default e)
+							                  (let [text (dom/value add-todo-input)]
+				                          (dom/set-value! add-todo-input "")
+		                              (send-messages! transmitter transform-name messages {:text text}))))))
+	  :filter-todos (do 
+	                  (goog-events/listen *h* *event-type-navigate* (partial decode-hash transform-name messages transmitter))
+	                  (.setEnabled *h* true))
+    nil))
 
 (defn todo-mvc-transform-disable [renderer [_ path transform-name messages] transmitter]
   (condp = transform-name
-  :add-todo (dom-events/unlisten! (dom/by-id "new-todo"))
-  :filter-todos (do
-                  (goog-events/removeAll *h* *event-type-navigate*)
-                  (.setEnabled *h* false))))
+    :add-todo (dom-events/unlisten! (dom/by-id "new-todo"))
+    :filter-todos (do
+                    (goog-events/removeAll *h* *event-type-navigate*)
+                    (.setEnabled *h* false))
+    nil))
 
 (defn create-todos-section-node [renderer [_ path] transmitter]
   (let [id (render/new-id! renderer path)
@@ -81,13 +85,14 @@
 (defn todos-section-transform-enable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
 	  (condp = transform-name
-	  :toggle-todos
-    (events-helper/send-on :change (select-toggle-all id) transmitter transform-name messages))))
+	    :toggle-todos (events-helper/send-on :change (select-toggle-all id) transmitter transform-name messages)
+      nil)))
 
 (defn todos-section-transform-disable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
-	  (condp = transform-name
-	  :toggle-todos (dom-events/unlisten! (select-toggle-all id)))))
+	  (condp = transform-name 
+      :toggle-todos (dom-events/unlisten! (select-toggle-all id))
+      nil)))
 
 (defn create-todos-node [renderer [_ path] transmitter]
   (let [id (render/new-id! renderer path)
@@ -120,36 +125,45 @@
 (defn todo-form-transform-enable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
     (condp = transform-name
-	  :update-todo
-	  (let [todo (dom/by-id id)
-          label (select-todo-label id)
-          update-field (select-todo-update id)]
-      (dom-events/listen! label :dblclick (partial
-                                            (fn [todo e]
-                                              (dom-events/prevent-default e)
-                                              (dom/add-class! todo "editing")) todo))
-      (dom-events/listen! update-field :keypress (partial
-                                                   (fn [todo e]
-                                                     (when (= *enter-key* (:keyCode e))
-                                                       (dom-events/prevent-default e)
-                                                       (dom/remove-class! todo "editing")
-                                                       (let [value (.-value (dom-events/target e))]
-                                                         (send-messages! transmitter transform-name messages {:text value})))) 
-                                                   todo)))
-	  :toggle-todo
-    (events-helper/send-on :change (select-todo-complete id) transmitter transform-name messages)
-	  :delete-todo
-    (events-helper/send-on-click (select-todo-delete id) transmitter transform-name messages))))
+		  :update-todo
+			  (let [todo (dom/by-id id)
+		          label (select-todo-label id)
+		          update-field (select-todo-update id)
+		          reset-update-field! (fn [e]
+		                                (dom-events/prevent-default e)
+		                                (dom/set-value! update-field (dom/text label))
+		                                (dom/remove-class! todo "editing"))]
+		      (dom-events/listen! label :dblclick (fn [e]
+		                                            (dom-events/prevent-default e)
+		                                            (dom/add-class! todo "editing")))
+		      (dom-events/listen! update-field :blur (fn [e] (reset-update-field! e)))
+		      (dom-events/listen! update-field :keypress (fn [{keyCode :keyCode :as e}]
+		                                                   (condp = keyCode
+			                                                   *enter-key*
+			                                                     (do
+			                                                       (dom-events/prevent-default e)
+				                                                     (dom/remove-class! todo "editing")
+				                                                     (let [value (dom/value (dom-events/target e))]
+				                                                       (send-messages! transmitter transform-name messages {:text value})))
+			                                                   *escape-key*
+			                                                     (reset-update-field! e)
+			                                                   nil)))) 
+      :toggle-todo
+        (events-helper/send-on :change (select-todo-complete id) transmitter transform-name messages)
+	    :delete-todo
+        (events-helper/send-on-click (select-todo-delete id) transmitter transform-name messages)
+      nil)))
 
 (defn todo-form-transform-disable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
 	  (condp = transform-name
-	  :update-todo (let [label (select-todo-label id)
-                       update-field (select-todo-update id)]
-                   (dom-events/unlisten! label)
-                   (dom-events/unlisten! update-field))
-   	:toggle-todo (dom-events/unlisten! (select-todo-complete id))
-	  :delete-todo (dom-events/unlisten! (select-todo-delete id)))))
+	    :update-todo (let [label (select-todo-label id)
+                         update-field (select-todo-update id)]
+                     (dom-events/unlisten! label)
+                     (dom-events/unlisten! update-field))
+   	  :toggle-todo (dom-events/unlisten! (select-todo-complete id))
+	    :delete-todo (dom-events/unlisten! (select-todo-delete id))
+      nil)))
 
 (defn create-footer-node [renderer [_ path] transmitter]
   (let [id (render/new-id! renderer path)
@@ -186,12 +200,14 @@
 (defn completed-transform-enable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
 	  (condp = transform-name
-	  :delete-completed (events-helper/send-on-click (dom/by-id id) transmitter transform-name messages))))
+	    :delete-completed (events-helper/send-on-click (dom/by-id id) transmitter transform-name messages)
+      nil)))
 
 (defn completed-transform-disable [renderer [_ path transform-name messages] transmitter]
   (let [id (render/get-id renderer path)]
 	  (condp = transform-name
-	  :delete-completed (dom-events/unlisten! (dom/by-id id)))))
+	    :delete-completed (dom-events/unlisten! (dom/by-id id))
+      nil)))
 
 (defn render-config []
   [[:node-create [:todo-mvc] render-todo-page]
