@@ -235,14 +235,6 @@
              [:node-destroy [:todo-mvc :footer :completed]]]
     []))
 
-(def sort-order
-  {:remaining 0
-   :filter 1
-   :completed 2
-   :new-todos 3 
-   :updated-todos 4
-   :deleted-todos 5})
-
 (defn todo-mvc-emit
   ([inputs] initial-app-model)
   ([inputs changed-inputs]
@@ -256,8 +248,8 @@
                              :remaining (remaining-deltas new-value)
                              :filter (filter-deltas new-value)
                              []))))
-             []
-             (sort-by sort-order changed-inputs))))
+             [] 
+             changed-inputs)))
 
 ;; Dataflow
 
