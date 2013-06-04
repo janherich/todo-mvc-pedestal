@@ -1,6 +1,6 @@
 (defproject todo-mvc "0.0.1-SNAPSHOT"
   :description "TodoMVC app developed using pedestal"
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-1586"]
                  [domina "1.0.1"]
                  [ch.qos.logback/logback-classic "1.0.6"]
