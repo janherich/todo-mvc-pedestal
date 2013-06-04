@@ -24,6 +24,10 @@
 
 (def *h* (goog.History.))
 
+(defn send-messages! [transmitter transform-name messages msg-value]
+  (doseq [message (msg/fill transform-name messages msg-value)]
+    (p/put-message transmitter message)))
+
 (defn render-todo-page [renderer [_ path] transmitter]
   (let [parent (render/get-parent-id renderer path)
         html (templates/add-template renderer path (:todo-mvc templates))]
@@ -35,8 +39,7 @@
 
 (defn decode-hash [transform-name messages transmitter e]
   (when-let [filter-value (get {"/" :all "/active" :remaining "/completed" :completed} (.-token e))]
-    (doseq [message (msg/fill transform-name messages {:filter filter-value})]
-      (p/put-message transmitter message))))
+    (send-messages! transmitter transform-name messages {:filter filter-value})))
 
 (defn todo-mvc-transform-enable [renderer [_ path transform-name messages] transmitter]
   (condp = transform-name
@@ -49,8 +52,7 @@
 		                        (dom-events/prevent-default e)
 					                  (let [text (.-value add-todo-input)]
 		                          (set! (.-value add-todo-input) "")
-                              (doseq [message (msg/fill transform-name messages {:text text})]
-                                (p/put-message transmitter message)))))))
+                              (send-messages! transmitter transform-name messages {:text text}))))))
   :filter-todos (do 
                   (goog-events/listen *h* *event-type-navigate* (partial decode-hash transform-name messages transmitter))
                   (.setEnabled *h* true))))
@@ -132,8 +134,8 @@
                                                        (dom-events/prevent-default e)
                                                        (dom/remove-class! todo "editing")
                                                        (let [value (.-value (dom-events/target e))]
-                                                         (doseq [message (msg/fill transform-name messages {:text value})]
-                                                           (p/put-message transmitter message))))) todo)))
+                                                         (send-messages! transmitter transform-name messages {:text value})))) 
+                                                   todo)))
 	  :toggle-todo
     (events-helper/send-on :change (select-todo-complete id) transmitter transform-name messages)
 	  :delete-todo
